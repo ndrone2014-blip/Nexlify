@@ -1,33 +1,94 @@
 {% extends "base.html" %}
 {% block title %}Terms of Service · Nexora{% endblock %}
 {% block content %}
+{% set support %}{% if config.support_url %}<a href="{{ config.support_url }}" rel="noopener">support server</a>{% else %}<a href="/support">support page</a>{% endif %}{% endset %}
 <div class="wrap prose">
   <div class="page-head" style="padding-left:0">
     <h1>Terms of Service</h1>
-    <p>Last updated October 31, 2026. By adding Nexora to a server or using its commands or dashboard, you agree to these terms.</p>
+    <p>Effective October 31, 2026. These terms are the rules for using the Nexora Discord bot and its website and dashboard. By adding Nexora to a server, using its commands, or logging in to the dashboard, you agree to them. If you don't agree, please don't use Nexora.</p>
   </div>
 
-  <h2>Using Nexora</h2>
+  <div class="panel">
+    <h3>The short version</h3>
+    <ul>
+      <li>Follow Discord's rules and the rules below.</li>
+      <li>Don't use Nexora to hurt people or try to break it.</li>
+      <li>Server owners are responsible for how Nexora is set up in their server.</li>
+      <li>Nexora is free and provided as is, with no guarantees.</li>
+    </ul>
+  </div>
+
+  <h2>1. About these terms</h2>
+  <p>Nexora is an independent project developed by Drone Hive Studios (developer: @ndrone40). It is not made, endorsed or run by Discord. In these terms, "Nexora", "we" and "us" mean the bot, its website and dashboard, and the people who run it. "You" means anyone who uses Nexora in any way.</p>
+
+  <h2>2. Who can use Nexora</h2>
   <ul>
-    <li>Follow <a href="https://discord.com/terms" rel="noopener">Discord's Terms of Service</a> and <a href="https://discord.com/guidelines" rel="noopener">Community Guidelines</a> when using Nexora.</li>
-    <li>Don't use Nexora to spam, harass, scam or harm people, or to break the law.</li>
-    <li>Don't try to break, overload or get around Nexora's security or limits, or access servers and data you aren't allowed to.</li>
-    <li>Server owners are responsible for how Nexora is set up in their server and for telling members what it logs.</li>
+    <li>You must be at least 13, or the minimum age to use Discord in your country if that's higher.</li>
+    <li>You must follow <a href="https://discord.com/terms" rel="noopener">Discord's Terms of Service</a> and <a href="https://discord.com/guidelines" rel="noopener">Community Guidelines</a>. Breaking them while using Nexora also breaks these terms.</li>
+    <li>If you use Nexora for a group or organization, you confirm you're allowed to accept these terms for it.</li>
   </ul>
 
-  <h2>Availability</h2>
-  <p>Nexora is provided as is, for free, with no guarantee it will always be online or error-free. Features can change or be removed at any time.</p>
+  <h2>3. Rules</h2>
+  <p>When using Nexora, you must not:</p>
+  <ol>
+    <li>Use it to harass, threaten, bully, dox, or spread hate about anyone.</li>
+    <li>Use it to send spam, mass pings, scams, phishing links, malware, or unwanted advertising.</li>
+    <li>Use it for anything illegal, or to share content that is illegal or sexualizes minors.</li>
+    <li>Use it to raid, nuke, or damage servers, or to target people outside your server.</li>
+    <li>Abuse features meant for fun, like giveaways, the economy, or leveling, to deceive people or sell things for real money.</li>
+    <li>Use automations, custom commands, scheduled messages, or embeds to impersonate Discord, Nexora, staff, or anyone else.</li>
+    <li>Try to break, overload, slow down, or hack Nexora, including exploiting bugs, flooding commands, or getting around rate limits, cooldowns, or permission checks.</li>
+    <li>Try to see or change servers, dashboards, or data you aren't allowed to access.</li>
+    <li>Copy Nexora's data automatically (scraping), or use it to collect information about people.</li>
+    <li>Use the AI assistant to create harmful content, get around its limits, or break <a href="https://www.anthropic.com/legal/aup" rel="noopener">Anthropic's Usage Policy</a>.</li>
+  </ol>
+  <p>Found a bug or security problem? Please report it privately through the {{ support }} instead of using it. Honest reports are appreciated and won't be treated as breaking these rules.</p>
 
-  <h2>Ending access</h2>
-  <p>Nexora may be removed from servers, or people may be blocked from using it, if these terms are broken. You can stop using Nexora at any time by removing it from your server.</p>
+  <h2>4. Rules for server owners and staff</h2>
+  <ul>
+    <li>You're responsible for how Nexora is set up in your server, including its settings, custom commands, automations, and the actions it takes because of them.</li>
+    <li>If you turn on logging, automod, tickets, applications, or the AI assistant, tell your members, for example in your server rules, that Nexora may store their messages and submissions. Point them to the <a href="/privacy">Privacy Policy</a>.</li>
+    <li>Only give dashboard and staff access to people you trust. Anyone with that access can change Nexora's settings and see your server's records.</li>
+    <li>Use moderation tools fairly and don't use logs or records to harass members.</li>
+    <li>Respect your members' requests to have their data removed where you're able to.</li>
+  </ul>
 
-  <h2>Liability</h2>
-  <p>To the extent the law allows, the operator of Nexora isn't responsible for losses caused by using it, including actions it takes because of how a server configured it.</p>
+  <h2>5. Your content</h2>
+  <p>You keep ownership of anything you create or submit through Nexora, such as messages, ticket answers, applications, custom commands, and embeds. You give Nexora permission to store, process, and display that content only as needed to run its features. You're responsible for making sure you have the right to use any content you add.</p>
 
-  <h2>Privacy</h2>
-  <p>How data is handled is explained in the <a href="/privacy">Privacy Policy</a>.</p>
+  <h2>6. The AI assistant</h2>
+  <p>If a server turns on <code>/ask</code>, answers are written by AI and can be wrong, out of date, or incomplete. Don't rely on them for medical, legal, financial, or safety decisions, and don't share personal information in questions. Servers may have daily limits on how many questions can be asked.</p>
 
-  <h2>Changes</h2>
-  <p>These terms may be updated; the date at the top shows when. Continuing to use Nexora after a change means you accept it.</p>
+  <h2>7. Virtual items have no real value</h2>
+  <p>XP, levels, economy currency, shop items, achievements, and giveaway entries in Nexora are just for fun. They have no real-world money value, can't be exchanged for money, and may be reset by server staff or lost because of bugs or changes. Prizes in giveaways are provided by the server running them, not by Nexora.</p>
+
+  <h2>8. Availability and changes</h2>
+  <p>Nexora is free and provided "as is" and "as available." There is no promise that it will always be online, work perfectly, or keep any particular feature. Features can be added, changed, limited, or removed at any time, and Nexora may stop running altogether.</p>
+
+  <h2>9. Suspension and ending use</h2>
+  <ul>
+    <li>We may block a user, or remove Nexora from a server, if these rules are broken, if it's needed to protect people or Nexora, or if Discord requires it. This can happen without warning in serious cases.</li>
+    <li>You can stop using Nexora at any time. Server owners can remove it from their server whenever they like.</li>
+    <li>The sections on your content, virtual items, disclaimers, and liability still apply after you stop using Nexora.</li>
+  </ul>
+
+  <h2>10. Disclaimer</h2>
+  <p>To the fullest extent the law allows, Nexora is provided without warranties of any kind, whether express or implied, including that it will be fit for a particular purpose, secure, accurate, or free of errors.</p>
+
+  <h2>11. Limitation of liability</h2>
+  <p>To the fullest extent the law allows, the people who make and run Nexora aren't responsible for any loss or damage from using it or not being able to use it. That includes lost data, lost server members, moderation actions Nexora takes because of how a server set it up, content posted by other users, or downtime. Some places don't allow certain limits on liability, so parts of this section may not apply to you.</p>
+
+  <h2>12. Third-party services</h2>
+  <p>Nexora works with Discord and, depending on settings, Anthropic and other services. Those services have their own terms and policies, and we aren't responsible for them.</p>
+
+  <h2>13. Privacy</h2>
+  <p>How Nexora handles your information is explained in the <a href="/privacy">Privacy Policy</a>, which is part of these terms.</p>
+
+  <h2>14. Changes to these terms</h2>
+  <p>These terms may be updated. The date at the top shows when they last changed, and bigger changes will be announced in the {{ support }}. Using Nexora after a change means you accept the updated terms.</p>
+
+  <h2>15. Contact</h2>
+  <p>Questions about these terms can be sent through the {{ support }}.</p>
+  <p style="color:var(--muted)">Developed by Drone Hive Studios | Developer @ndrone40</p>
 </div>
 {% endblock %}
