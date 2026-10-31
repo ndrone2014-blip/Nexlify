@@ -11,3 +11,4 @@ data/
 .vscode/*
 !.vscode/launch.json
 !.vscode/settings.json
+site/

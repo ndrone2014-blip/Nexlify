@@ -40,6 +40,19 @@ Nothing paid is required. The `/ask` AI command is optional and only turns on if
 - Modals hold at most 5 text inputs, so long application forms run over several steps.
 - Channel renames (priority, stats channels) are rate limited by Discord to 2 per 10 minutes.
 
+## Hosting the website on Netlify
+
+Netlify hosts the public website (home, features, commands, docs, support). It can't run the bot or the dashboard, because those must stay online all the time, so they keep running on your PC or a server. The Netlify site forwards **Dashboard**, **Log in**, **Status** and leaderboard links to them.
+
+1. In Netlify: **Add new site → Import an existing project → GitHub → Nexlify**. The build settings come from `netlify.toml`, so leave them as they are and deploy.
+2. In **Site configuration → Environment variables**, add:
+   - `DASHBOARD_URL`: the public address where your bot and dashboard run (for example a Cloudflare Tunnel URL). Until it's set, dashboard links show a setup message.
+   - `DISCORD_CLIENT_ID` (optional): makes **Add to Discord** link straight to Discord.
+3. Redeploy (**Deploys → Trigger deploy**). Every push to GitHub redeploys automatically.
+4. On the machine running the bot, set `PUBLIC_URL` and `DISCORD_REDIRECT_URI` in `.env` to that same dashboard address, and add the redirect in the Discord Developer Portal.
+
+To preview the static site locally, run `python scripts/build_netlify.py`; it writes the site to `site/`.
+
 ## Project layout
 
 ```

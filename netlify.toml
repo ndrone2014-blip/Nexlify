@@ -1,0 +1,24 @@
+# Netlify hosts Nexora's public website (home, features, commands, docs, support).
+# The bot and dashboard must run elsewhere (your PC with a tunnel, or a server);
+# set DASHBOARD_URL in Netlify's environment variables so the Dashboard / Log in
+# buttons forward there. See README "Hosting the website on Netlify".
+
+[build]
+  command = "pip install -r requirements.txt && python scripts/build_netlify.py"
+  publish = "site"
+
+[build.environment]
+  PYTHON_VERSION = "3.12"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
