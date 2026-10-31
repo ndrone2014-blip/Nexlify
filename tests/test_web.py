@@ -486,3 +486,61 @@ def test_login_moves_to_callback_host():
             s, _, h = await env.req("GET", "/auth/login?next=/dashboard/5", user=None, raw=True)
             assert s in (302, 307) and h["Location"] == "https://example.trycloudflare.com/auth/login?next=%2Fdashboard%2F5"
     run(t())
+
+
+# ---------------------------------------------------------- security hardening
+def test_cannot_escalate_roles_through_nexora():
+    """Someone with Manage Server but not Manage Roles must not be able to make Nexora hand out roles."""
+    async def t():
+        async with Env(ready=True) as env:
+            menu = {"kind": "button", "channel_id": str(CH_GENERAL), "title": "Roles", "options": [{"role_id": str(ROLE_MEMBER), "label": "Member"}]}
+            s, d = await env.req("POST", "guild/role-menus", user=MOD_ID, json=menu)
+            assert s == 403 and "Manage Roles" in d["error"]
+            s, d = await env.req("POST", "guild/collections/shop", user=MOD_ID, json={"name": "VIP", "price": 1, "role_id": str(ROLE_MEMBER)})
+            assert s == 403
+            s, d = await env.req("PUT", "guild/settings/welcome", user=MOD_ID, json={"autorole_ids": [str(ROLE_MEMBER)]})
+            assert s == 403 and "autorole_ids" in d["errors"]
+            s, d = await env.req("PUT", "guild/settings/leveling", user=MOD_ID, json={"rewards": [{"level": 1, "role_id": str(ROLE_MEMBER)}]})
+            assert s == 403 and "rewards" in d["errors"]
+            auto = {"name": "x", "trigger": "member_join", "conditions": [], "actions": [{"type": "add_role", "role": str(ROLE_MEMBER)}]}
+            assert (await env.req("POST", "guild/automations", user=MOD_ID, json=auto))[0] == 403
+            # the server owner can set all of these up
+            assert (await env.req("POST", "guild/role-menus", json=menu))[0] == 200
+            assert (await env.req("PUT", "guild/settings/welcome", json={"autorole_ids": [str(ROLE_MEMBER)]}))[0] == 200
+            # ...and a lower manager can still save other settings in the same module afterwards
+            assert (await env.req("PUT", "guild/settings/welcome", user=MOD_ID, json={"autorole_ids": [str(ROLE_MEMBER)], "autorole_delay_seconds": 5}))[0] == 200
+            # a crafted backup can't sneak a role in either
+            backup = {"nexora_config_version": 1, "modules": {}, "shop_items": [{"name": "Sneaky", "price": 1, "role_id": ROLE_MEMBER, "stock": -1, "enabled": 1}]}
+            s, d = await env.req("POST", "guild/config/import", user=MOD_ID, json=backup)
+            assert s == 200 and d["rows"]["shop_items"] == 0 and d["skipped"]
+            backup = {"nexora_config_version": 1, "modules": {"welcome": {"bot_autorole_ids": [ROLE_MEMBER]}}}
+            assert (await env.req("POST", "guild/config/import", user=MOD_ID, json=backup))[0] == 403
+    run(t())
+
+
+def test_dashboard_access_roles_need_real_manage_server():
+    async def t():
+        async with Env(ready=True) as env:
+            await env.bot.settings.update(GUILD_ID, "general", {"dashboard_role_ids": [ROLE_MEMBER]})
+            # NOBODY only has dashboard access through the extra role: they can't widen dashboard access
+            s, d = await env.req("PUT", "guild/settings/general", user=NOBODY_ID, json={"dashboard_role_ids": [str(ROLE_MEMBER), str(ROLE_READONLY)]})
+            assert s == 403 and "dashboard_role_ids" in d["errors"]
+            # MOD has Manage Server in Discord, so they can
+            assert (await env.req("PUT", "guild/settings/general", user=MOD_ID, json={"dashboard_readonly_role_ids": [str(ROLE_READONLY)]}))[0] == 200
+    run(t())
+
+
+def test_everyone_pings_need_permission_and_safe_invite():
+    async def t():
+        async with Env(ready=True) as env:
+            msg = {"channel_id": str(CH_GENERAL), "content": "@everyone hi", "next_run_at": "2030-01-01T10:00:00Z"}
+            s, d = await env.req("POST", "guild/collections/scheduled", user=MOD_ID, json=msg)
+            assert s == 403 and "Mention @everyone" in d["error"]
+            assert (await env.req("POST", "guild/collections/scheduled", json=msg))[0] == 200  # owner may
+            _, _, headers = await env.req("GET", "/invite", user=None, raw=True)
+            assert "permissions=8&" not in headers["Location"]
+            from nexora.config import INVITE_PERMISSIONS
+            assert not INVITE_PERMISSIONS & 0x8 and not INVITE_PERMISSIONS & (1 << 17)  # no Administrator / Mention Everyone
+            for path in ("/privacy", "/terms"):
+                assert (await env.req("GET", path, user=None, raw=True))[0] == 200
+    run(t())

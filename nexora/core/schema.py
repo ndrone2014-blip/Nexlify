@@ -473,7 +473,7 @@ MODULES: dict[str, dict] = {
                 F("enabled", "bool", "AI assistant enabled", False),
                 F("allowed_channel_ids", "channels", "Allowed channels (empty = all)", []),
                 F("allowed_role_ids", "roles", "Allowed roles (empty = everyone)", []),
-                F("cooldown_seconds", "int", "Per-user cooldown (seconds)", 30, min=0, max=3600),
+                F("cooldown_seconds", "int", "Per-user cooldown (seconds)", 30, min=10, max=3600),
                 F("system_prompt", "textarea", "Extra instructions", "You are Nexora, a friendly assistant for this Discord server. Keep answers short.", max_length=2000),
             ),
         ],

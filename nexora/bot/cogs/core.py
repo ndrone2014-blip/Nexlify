@@ -11,6 +11,8 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from nexora.bot.helpers import manager_check
+from nexora.core import schema
+from nexora.core.permissions import settings_problems
 from nexora.core.utils import BRAND, brand_embed, err, human_duration, ok
 
 HELP_CATEGORIES = {
@@ -131,6 +133,18 @@ class Core(commands.Cog):
         try:
             payload = json.loads(await file.read())
             modules = payload["modules"]
+            if not isinstance(modules, dict):
+                raise ValueError("this isn't a Nexora configuration backup")
+            # Same rule as the dashboard: a backup can't set up role rewards/autoroles or dashboard access
+            # that the person importing it couldn't set up by hand.
+            for module, values in modules.items():
+                if module in schema.MODULES and isinstance(values, dict):
+                    clean = schema.validate(module, values, partial=True)
+                    current = await self.bot.settings.get(interaction.guild_id, module)
+                    problems = settings_problems(interaction.user, interaction.guild, module, clean, current)  # type: ignore[arg-type]
+                    if problems:
+                        key, why = next(iter(problems.items()))
+                        raise ValueError(f"{module}.{key}: {why}")
             imported = await self.bot.settings.import_guild(interaction.guild_id, modules)
         except Exception as exc:  # noqa: BLE001 - user-supplied file, report anything
             return await interaction.response.send_message(embed=err(f"Could not import: {exc}"), ephemeral=True)

@@ -141,6 +141,7 @@ class GuildCtx:
     session: Session
     level: str  # "manage" | "read"
     bot: Any
+    member: Any = None  # the dashboard user as a live discord.Member
 
     @property
     def gid(self) -> int:
@@ -151,8 +152,7 @@ class GuildCtx:
         return self.session.user_id
 
 
-async def access_level(bot, guild, user_id: int) -> str | None:
-    """Compute dashboard access from live bot data (always current, unlike cached OAuth lists)."""
+async def resolve_member(guild, user_id: int):
     member = guild.get_member(user_id)
     if member is None:
         # Without the Server Members intent the member cache is empty, so ask Discord directly.
@@ -160,6 +160,14 @@ async def access_level(bot, guild, user_id: int) -> str | None:
             member = await guild.fetch_member(user_id)
         except Exception:  # not in the server, or Discord unreachable
             return None
+    return member
+
+
+async def access_level(bot, guild, user_id: int, member=None) -> str | None:
+    """Compute dashboard access from live bot data (always current, unlike cached OAuth lists)."""
+    member = member or await resolve_member(guild, user_id)
+    if member is None:
+        return None
     perms = member.guild_permissions
     if guild.owner_id == user_id or perms.administrator or perms.manage_guild:
         return "manage"
@@ -178,12 +186,13 @@ async def guild_ctx(request: Request, gid: int, write: bool = False) -> GuildCtx
     guild = bot.get_guild(gid) if bot else None
     if guild is None:
         raise HTTPException(404, "Nexora isn't in that server (or the bot is offline).")
-    level = await access_level(bot, guild, sess.user_id)
+    member = await resolve_member(guild, sess.user_id)
+    level = await access_level(bot, guild, sess.user_id, member) if member else None
     if level is None:
         raise HTTPException(403, "You don't have access to this server's dashboard.")
     if write and level != "manage":
         raise HTTPException(403, "You have read-only access to this dashboard.")
-    return GuildCtx(guild, sess, level, bot)
+    return GuildCtx(guild, sess, level, bot, member)
 
 
 def can_manage_from_oauth(g: dict) -> bool:

@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from nexora.bot.helpers import has_any_role, manager_check
+from nexora.core.permissions import allowed_mentions_for, can_mention_everyone
 from nexora.core.utils import brand_embed, color_int, embed_from_dict, embed_has_content, err, human_duration, link_buttons_view, ok, parse_duration, render, truncate
 from nexora.db import from_db_time, jload, to_db_time, utcnow
 
@@ -28,7 +29,8 @@ class AnnounceModal(discord.ui.Modal, title="Announcement"):
             embed.set_image(url=self.image.value)
         embed.set_footer(text=f"Announced by {interaction.user.display_name}")
         await self.channel.send(content=self.ping.mention if self.ping else None, embed=embed,
-                                allowed_mentions=discord.AllowedMentions(roles=True, everyone=True))
+                                allowed_mentions=discord.AllowedMentions(roles=[self.ping] if self.ping and not self.ping.is_default() else False,
+                                                                         everyone=bool(self.ping and self.ping.is_default()), users=False))
         await interaction.response.send_message(embed=ok(f"Announcement sent to {self.channel.mention}."), ephemeral=True)
 
 
@@ -125,11 +127,13 @@ class Utility(commands.Cog):
         await self.bot.track_feature(message.guild.id, "custom_command")
 
     # ---------------------------------------------------- scheduled messages
-    async def send_payload(self, channel: discord.abc.Messageable, content: str | None, embed_data: dict | None, guild: discord.Guild | None = None) -> discord.Message:
+    async def send_payload(self, channel: discord.abc.Messageable, content: str | None, embed_data: dict | None, guild: discord.Guild | None = None,
+                           actor: discord.Member | None = None) -> discord.Message:
+        """Send a saved/scheduled message. Pings are limited to what `actor` (the person behind it) could ping in Discord."""
         embed = embed_from_dict(embed_data, None, guild) if embed_has_content(embed_data) else None
         view = link_buttons_view(embed_data.get("buttons")) if embed_data else None
         return await channel.send(content=render(content, None, guild) if content else None, embed=embed, view=view or discord.utils.MISSING,
-                                  allowed_mentions=discord.AllowedMentions(everyone=True, roles=True, users=True))
+                                  allowed_mentions=allowed_mentions_for(actor, guild))
 
     @tasks.loop(seconds=30)
     async def schedule_loop(self):
@@ -145,7 +149,8 @@ class Utility(commands.Cog):
                 await self.bot.db.execute("UPDATE scheduled_messages SET enabled=0 WHERE id=?", (row["id"],))
             if isinstance(ch, (discord.TextChannel, discord.Thread)):
                 try:
-                    await self.send_payload(ch, row["content"], jload(row["embed"], None), guild)
+                    actor = guild.get_member(row["created_by"]) if row["created_by"] else None
+                    await self.send_payload(ch, row["content"], jload(row["embed"], None), guild, actor=actor)
                 except discord.HTTPException as exc:
                     await self.bot.db.log_error("scheduled_message", f"#{row['id']}: {exc}", guild_id=row["guild_id"])
 
@@ -163,6 +168,8 @@ class Utility(commands.Cog):
         perms = channel.permissions_for(interaction.user)  # type: ignore[arg-type]
         if not perms.send_messages:
             return await interaction.response.send_message(embed=err("You can't send messages in that channel."), ephemeral=True)
+        if ping and (ping.is_default() or not ping.mentionable) and not can_mention_everyone(interaction.user):  # type: ignore[arg-type]
+            return await interaction.response.send_message(embed=err("You need the Mention @everyone permission to ping that role."), ephemeral=True)
         await interaction.response.send_modal(AnnounceModal(channel, ping))
 
     @app_commands.command(name="embed", description="Send a saved embed (create them in the dashboard's embed builder)")
@@ -174,8 +181,13 @@ class Utility(commands.Cog):
         if not row:
             return await interaction.response.send_message(embed=err("No saved embed with that name."), ephemeral=True)
         ch = channel or interaction.channel
+        if not ch.permissions_for(interaction.user).send_messages:  # type: ignore[union-attr, arg-type]
+            return await interaction.response.send_message(embed=err("You can't send messages in that channel."), ephemeral=True)
         data = jload(row["data"], {})
-        await self.send_payload(ch, data.get("content"), data, interaction.guild)
+        try:
+            await self.send_payload(ch, data.get("content"), data, interaction.guild, actor=interaction.user)  # type: ignore[arg-type]
+        except discord.HTTPException:
+            return await interaction.response.send_message(embed=err("I couldn't send messages in that channel."), ephemeral=True)
         await interaction.response.send_message(embed=ok(f"Sent to {ch.mention}."), ephemeral=True)
 
     @send_embed.autocomplete("name")

@@ -35,7 +35,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (refresh && servers) refresh.addEventListener('click', function (e) { e.preventDefault(); loadServers(servers, true); });
 });
 
-function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+// Escapes text for HTML, including quotes, so it's also safe inside attribute values.
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 function loadServers(el, refresh) {
   el.innerHTML = '<p class="loading">Loading your servers…</p>';

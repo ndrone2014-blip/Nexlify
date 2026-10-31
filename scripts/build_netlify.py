@@ -2,7 +2,7 @@
 
 Netlify can host static pages but can't run the Discord bot or the dashboard
 (they need a process that stays online). This script renders the public pages
-(home, features, commands, docs, support) into ./site and writes Netlify
+(home, features, commands, docs, support, privacy, terms) into ./site and writes Netlify
 redirect rules that send /dashboard, login, invite, status and leaderboards to
 wherever your bot is running.
 
@@ -25,7 +25,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 OUT = ROOT / "site"
 
-PAGES = {"/": "home.html", "/features": "features.html", "/commands": "commands.html", "/docs": "docs.html", "/support": "support.html"}
+PAGES = {"/": "home.html", "/features": "features.html", "/commands": "commands.html", "/docs": "docs.html", "/support": "support.html",
+         "/privacy": "privacy.html", "/terms": "terms.html"}
 
 
 async def command_groups() -> list[dict]:
@@ -53,7 +54,8 @@ def main() -> None:
 
     dashboard = os.getenv("DASHBOARD_URL", "").strip().rstrip("/")
     client_id = os.getenv("DISCORD_CLIENT_ID", "").strip()
-    invite = (f"https://discord.com/oauth2/authorize?client_id={client_id}&permissions=8&scope=bot%20applications.commands"
+    from nexora.config import INVITE_PERMISSIONS
+    invite = (f"https://discord.com/oauth2/authorize?client_id={client_id}&permissions={INVITE_PERMISSIONS}&scope=bot%20applications.commands"
               if client_id else (f"{dashboard}/invite" if dashboard else ""))
     config = SimpleNamespace(support_url=os.getenv("SUPPORT_URL", ""), owner_ids=[])
     groups = asyncio.run(command_groups())

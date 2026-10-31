@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy · Nexora{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  <div class="page-head" style="padding-left:0">
+    <h1>Privacy Policy</h1>
+    <p>Last updated October 31, 2026. This explains what Nexora stores, why, and how to get it removed.</p>
+  </div>
+
+  <h2>Who runs Nexora</h2>
+  <p>Nexora is run by an independent developer, not by Discord. Questions about this policy go to the {% if config.support_url %}<a href="{{ config.support_url }}" rel="noopener">support server</a>{% else %}<a href="/support">support page</a>{% endif %}.</p>
+
+  <h2>What Nexora stores</h2>
+  <p>Nexora only stores data for the features a server's staff turn on. Depending on those settings, that can include:</p>
+  <ul>
+    <li><strong>Discord IDs</strong> of users, servers, channels and roles, so features know who and where things belong to.</li>
+    <li><strong>Server logs</strong>: when logging is on, the content and attachments of edited and deleted messages, plus member, role, voice and server changes. Logs are deleted automatically after the server's retention period (90 days by default).</li>
+    <li><strong>Moderation records</strong>: warnings, cases, notes, appeals and automod flags, including the message that triggered them.</li>
+    <li><strong>Tickets and applications</strong>: answers you submit, ticket transcripts and ratings.</li>
+    <li><strong>Community features</strong>: levels and XP, economy balances, birthdays you set, reminders, suggestions, polls and giveaway entries.</li>
+    <li><strong>Dashboard logins</strong>: your Discord ID, username, avatar and the list of servers you're in, plus a Discord login token kept on the server (never in your browser) for up to 7 days.</li>
+    <li><strong>Error reports</strong>: technical details when something breaks, so it can be fixed.</li>
+  </ul>
+  <p>Nexora reads message content only to run the features a server enables (logging, automod, leveling and custom commands). It doesn't sell data, show ads, or share data with anyone except as described below.</p>
+
+  <h2>AI assistant</h2>
+  <p>If a server turns on <code>/ask</code>, the question you type is sent to Anthropic to generate an answer. Don't include personal information in questions.</p>
+
+  <h2>Who can see your data</h2>
+  <p>Staff of a server can see that server's logs, moderation records, tickets and applications in Discord and on the dashboard. Leaderboards may be public if a server turns them on. The bot's operator can access the database to run and fix the bot.</p>
+
+  <h2>Getting your data removed</h2>
+  <p>Ask in the {% if config.support_url %}<a href="{{ config.support_url }}" rel="noopener">support server</a>{% else %}support channel{% endif %} and include your Discord user ID. Your data will be deleted within 30 days, except records a server needs to keep for moderation (such as bans), which are removed when that server removes Nexora or asks for its data to be deleted. Server owners can also reset any feature from the dashboard.</p>
+
+  <h2>Children</h2>
+  <p>Nexora follows Discord's age requirements. If you're under the minimum age to use Discord in your country, don't use Nexora.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the date at the top will change too. Continuing to use Nexora after a change means you accept it.</p>
+</div>
+{% endblock %}
