@@ -23,20 +23,6 @@ log = logging.getLogger("nexora.web")
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("image/svg+xml", ".svg")
-STATIC_TYPES = {"js": "text/javascript; charset=utf-8", "css": "text/css; charset=utf-8", "svg": "image/svg+xml",
-                "png": "image/png", "json": "application/json"}
-
-
-class NexoraStatic(StaticFiles):
-    """Static files with fixed content types (independent of the Windows registry) and no stale caching."""
-
-    async def get_response(self, path, scope):
-        response = await super().get_response(path, scope)
-        ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
-        if ext in STATIC_TYPES and response.status_code == 200:
-            response.headers["content-type"] = STATIC_TYPES[ext]
-        response.headers["Cache-Control"] = "no-cache"
-        return response
 HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(HERE / "templates"))
 
