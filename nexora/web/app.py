@@ -140,6 +140,14 @@ def create_app(config, db, bot) -> FastAPI:
     async def support(request: Request):
         return page(request, "support.html", user=await current_user(request))
 
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy(request: Request):
+        return page(request, "privacy.html", user=await current_user(request))
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms(request: Request):
+        return page(request, "terms.html", user=await current_user(request))
+
     @app.get("/status", response_class=HTMLResponse)
     async def status_page(request: Request):
         return page(request, "status.html", user=await current_user(request), status=await status_data())

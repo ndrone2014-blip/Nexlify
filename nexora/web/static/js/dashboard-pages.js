@@ -830,7 +830,7 @@ NX.register('settings', 'Server Settings', async (c, sub) => tabs(c, [
       let data; try { data = JSON.parse(await f.text()); } catch (e) { return toast('That file isn\'t valid JSON', true); }
       data.replace = $('#sw-imp_replace', b).checked;
       if (!await confirmDialog('Import configuration', 'This overwrites module settings with the backup. Continue?', 'Import', 'danger')) return;
-      await run(() => post('config/import', data), (r) => `Imported ${r.modules.length} modules. ${r.note}`);
+      await run(() => post('config/import', data), (r) => `Imported ${r.modules.length} modules. ${r.note}` + (r.skipped && r.skipped.length ? ` Skipped ${r.skipped.length}: ${r.skipped.slice(0, 3).join('; ')}${r.skipped.length > 3 ? '…' : ''}` : ''));
     });
   } },
   { id: 'audit', label: 'Dashboard audit log', render: async (b) => {

@@ -43,7 +43,7 @@
   <div class="wrap">
     <span>Nexora is free, open and runs on your own computer.</span>
     <nav>
-      <a href="/docs">Documentation</a><a href="/commands">Commands</a><a href="/status">Status</a><a href="/support">Support</a>
+      <a href="/docs">Documentation</a><a href="/commands">Commands</a><a href="/status">Status</a><a href="/support">Support</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>
       {% if user %}<form method="post" action="/auth/logout" style="display:inline"><input type="hidden" name="csrf" value="{{ user.csrf_token }}"><button class="btn ghost small" type="submit">Log out</button></form>{% endif %}
     </nav>
   </div>

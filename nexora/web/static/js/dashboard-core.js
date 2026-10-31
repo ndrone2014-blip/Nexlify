@@ -7,7 +7,8 @@ const NX = {
 };
 
 // ------------------------------------------------------------------ helpers
-const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+// Escapes text for HTML, including quotes, so it's also safe inside attribute values.
+const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const icon = (n) => (typeof window.nxIcon === 'function' ? window.nxIcon(n) : '');  // icons are optional; never break a page

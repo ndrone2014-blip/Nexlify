@@ -52,6 +52,8 @@ async def main() -> None:
             log.warning("DISCORD_BOT_TOKEN is empty, so only the website is running. Fill in .env and restart.")
             await load_extensions_offline(bot)
             bot_task = None
+        for warning in config.security_warnings():
+            log.warning("SECURITY: %s", warning)
         if not config.oauth_enabled:
             log.warning("DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET are empty, so dashboard login is disabled.")
         log.info("Website: http://%s:%s  (public URL: %s)", "localhost" if config.web_host in {"127.0.0.1", "0.0.0.0"} else config.web_host,

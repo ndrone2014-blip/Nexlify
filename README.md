@@ -53,6 +53,18 @@ Netlify hosts the public website (home, features, commands, docs, support). It c
 
 To preview the static site locally, run `python scripts/build_netlify.py`; it writes the site to `site/`.
 
+## Before going public
+
+Nexora checks most of this itself and prints `SECURITY:` warnings at startup if something is off.
+
+- **Keep secrets secret.** Never commit `.env` (it's already in `.gitignore`). If a token ever leaks, reset it in the Developer Portal right away.
+- **Use HTTPS.** Keep `WEB_HOST=127.0.0.1` and reach the dashboard through a tunnel (for example Cloudflare Tunnel) or a reverse proxy. Set `PUBLIC_URL` and `DISCORD_REDIRECT_URI` to the `https://` address; secure cookies turn on automatically.
+- **Invite permissions.** The invite link asks only for the permissions Nexora uses, never Administrator. Servers that invited an older version with Administrator can re-invite with the new link or remove Administrator from Nexora's role.
+- **Who can set up role rewards.** Role menus, shop roles, level rewards, autoroles, application roles and automation roles can only be set up by people who could assign that role in Discord themselves (Manage Roles, and the role must be below their highest role). Dashboard access roles can only be changed by the owner or members with Manage Server.
+- **AI costs.** `/ask` uses your Anthropic key. `AI_DAILY_LIMIT` and `AI_GUILD_DAILY_LIMIT` cap daily use; `AI_ALLOWED_GUILDS` limits it to servers you choose.
+- **Verification.** Discord lets you apply for verification at 75 servers and requires it before a bot can join more than 100. Verification includes approval for the Server Members and Message Content intents. The `/privacy` and `/terms` pages are ready to link in the Developer Portal; read them and change anything that doesn't match how you run Nexora.
+- **Uptime.** A public bot should run somewhere that stays on (a small VPS works well) rather than a PC that sleeps.
+
 ## Project layout
 
 ```

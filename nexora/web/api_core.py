@@ -14,6 +14,7 @@ from fastapi.responses import PlainTextResponse, Response
 
 from nexora.core import schema
 from nexora.core.automation_engine import ACTIONS, CONDITIONS, TRIGGERS
+from nexora.core.permissions import settings_problems
 from nexora.db import jdump, jload
 from nexora.web.auth import access_level, can_manage_from_oauth, guild_ctx, oauth_guilds, require_session
 
@@ -138,12 +139,24 @@ async def put_settings(request: Request, gid: int, module: str):
     body = await request.json()
     if not isinstance(body, dict):
         raise HTTPException(400, "Expected an object")
+    await _check_settings_permissions(ctx, module, body)
     try:
         data = await ctx.bot.settings.update(gid, module, body)
     except schema.ValidationError as exc:
         raise HTTPException(422, {"message": "Some settings are invalid", "errors": exc.errors}) from None
     await audit(ctx, f"settings.update:{module}", {"keys": sorted(body)})
     return {"ok": True, "values": _stringify_ids(module, data)}
+
+
+async def _check_settings_permissions(ctx, module: str, values: dict) -> None:
+    """Role rewards/autoroles and dashboard access can only be set by people allowed to grant them in Discord."""
+    try:
+        clean = schema.validate(module, values, partial=True)
+    except schema.ValidationError:
+        return  # the normal validation reports these
+    problems = settings_problems(ctx.member, ctx.guild, module, clean, await ctx.bot.settings.get(ctx.gid, module))
+    if problems:
+        raise HTTPException(403, {"message": "You don't have permission to change some of these settings", "errors": problems})
 
 
 @router.post("/guilds/{gid}/settings/{module}/reset")
@@ -293,54 +306,88 @@ async def config_export(request: Request, gid: int):
                     headers={"Content-Disposition": f'attachment; filename="nexora-config-{gid}.json"'})
 
 
-IMPORT_TABLES = {
-    "ticket_panels": ["name", "channel_id", "category_id", "staff_role_ids", "title", "description", "button_label", "button_emoji", "color",
-                      "questions", "max_open_per_user", "welcome_message", "name_format", "enabled"],
-    "application_forms": ["name", "kind", "description", "questions", "review_channel_id", "accept_role_ids", "remove_role_ids", "reviewer_role_ids",
-                          "cooldown_hours", "max_submissions", "accept_message", "deny_message", "required_votes", "panel_channel_id", "enabled"],
-    "role_menus": ["channel_id", "kind", "title", "description", "options", "max_values"],
-    "custom_commands": ["name", "response", "embed", "delete_trigger", "required_role_ids", "enabled"],
-    "automations": ["name", "trigger", "conditions", "actions", "enabled"],
-    "shop_items": ["name", "description", "price", "role_id", "stock", "enabled"],
-    "saved_embeds": ["name", "data"],
-}
+IMPORT_LIMITS = {"ticket_panels": 50, "application_forms": 200, "role_menus": 200, "custom_commands": 200,
+                 "automations": 100, "shop_items": 200, "saved_embeds": 200}
+IMPORT_JSON_COLS = {"staff_role_ids", "questions", "accept_role_ids", "remove_role_ids", "reviewer_role_ids", "options", "embed",
+                    "required_role_ids", "conditions", "actions", "data"}
+
+
+def _normalize_import_row(ctx, table: str, row: dict) -> dict:
+    """Turn an exported database row back into the shape the dashboard sends, and drop references to
+    channels/roles that don't exist in this server (backups can come from a different server)."""
+    g = ctx.guild
+    r = {k: (jload(v, None) if k in IMPORT_JSON_COLS and isinstance(v, str) else v) for k, v in row.items()}
+    for k, v in list(r.items()):
+        if k.endswith("channel_id") or k == "category_id":
+            if v and not (str(v).isdigit() and g.get_channel(int(v))):
+                r[k] = None
+        elif k.endswith("role_ids") and isinstance(v, list):
+            r[k] = [x for x in v if str(x).isdigit() and g.get_role(int(x))]
+        elif k == "role_id" and v and not (str(v).isdigit() and g.get_role(int(v))):
+            r[k] = None
+    if table == "ticket_panels" and isinstance(r.get("color"), int):
+        r["color"] = f"#{r['color']:06X}"
+    if table == "role_menus" and isinstance(r.get("options"), list):
+        r["options"] = [o for o in r["options"] if isinstance(o, dict) and str(o.get("role_id", "")).isdigit() and g.get_role(int(o["role_id"]))]
+    return r
 
 
 @router.post("/guilds/{gid}/config/import")
 async def config_import(request: Request, gid: int):
+    """Restore a backup. Every row goes through the same validation and permission checks as the dashboard pages,
+    so a crafted backup file can't sneak in anything the editor couldn't set up by hand."""
+    from nexora.web import api_features as feat
+
     ctx = await guild_ctx(request, gid, write=True)
     body = await request.json()
     if not isinstance(body, dict) or body.get("nexora_config_version") != 1:
         raise HTTPException(400, "That isn't a Nexora configuration backup")
+    modules_in = body.get("modules") or {}
+    if not isinstance(modules_in, dict):
+        raise HTTPException(400, "That isn't a Nexora configuration backup")
+    for module, values in modules_in.items():
+        if module in schema.MODULES and isinstance(values, dict):
+            await _check_settings_permissions(ctx, module, values)
     try:
-        modules = await ctx.bot.settings.import_guild(gid, body.get("modules") or {})
+        modules = await ctx.bot.settings.import_guild(gid, modules_in)
     except schema.ValidationError as exc:
         raise HTTPException(422, {"message": "Backup contains invalid settings", "errors": exc.errors}) from None
-    counts = {}
+    bodies = {"ticket_panels": feat.ticket_panel_body, "application_forms": feat.form_body, "role_menus": feat.menu_body,
+              "custom_commands": feat.command_body, "shop_items": feat.shop_body, "saved_embeds": feat.embed_save_body}
+    counts, skipped = {}, []
     replace = bool(body.get("replace", False)) or request.query_params.get("replace") == "1"
-    for table, cols in IMPORT_TABLES.items():
+    for table, limit in IMPORT_LIMITS.items():
         rows = body.get(table)
         if not isinstance(rows, list):
             continue
         if replace:
             await ctx.bot.db.execute(f"DELETE FROM {table} WHERE guild_id=?", (gid,))
         n = 0
-        for row in rows[:500]:
+        for row in rows[:limit]:
             if not isinstance(row, dict):
                 continue
-            vals = [row.get(c) for c in cols]
-            ph = ",".join("?" * (len(cols) + 1))
+            if await ctx.bot.db.fetchval(f"SELECT COUNT(*) FROM {table} WHERE guild_id=?", (gid,), 0) >= limit:
+                skipped.append(f"{table}: limit of {limit} reached")
+                break
+            norm = _normalize_import_row(ctx, table, row)
             try:
-                await ctx.bot.db.execute(f"INSERT OR IGNORE INTO {table} (guild_id, {', '.join(cols)}) VALUES ({ph})", (gid, *vals))
-                n += 1
-            except Exception:  # skip malformed rows rather than failing the whole import
+                if table == "automations":
+                    await feat._save_automation(ctx, norm, None)
+                else:
+                    data = bodies[table](ctx, norm)
+                    ph = ",".join("?" * (len(data) + 1))
+                    await ctx.bot.db.execute(f"INSERT OR IGNORE INTO {table} (guild_id, {', '.join(data)}) VALUES ({ph})", (gid, *data.values()))
+            except HTTPException as exc:
+                label = norm.get("name") or norm.get("title") or f"row {n + 1}"
+                skipped.append(f"{table} '{label}': {exc.detail}")
                 continue
+            n += 1
         counts[table] = n
-    await audit(ctx, "config.import", {"modules": modules, "rows": counts})
+    await audit(ctx, "config.import", {"modules": modules, "rows": counts, "skipped": len(skipped)})
     auto = ctx.bot.get_cog("Automation")
     if auto:
         auto.invalidate(gid)
-    return {"ok": True, "modules": modules, "rows": counts,
+    return {"ok": True, "modules": modules, "rows": counts, "skipped": skipped[:50],
             "note": "Panels, forms and role menus were imported; publish them again from their pages to post the messages."}
 
 

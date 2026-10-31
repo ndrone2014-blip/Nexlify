@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from nexora.core.automation_engine import validate_automation
+from nexora.core.permissions import grant_problems, mention_problem
 from nexora.core.utils import color_int, embed_from_dict, parse_duration
 from nexora.db import from_db_time, jdump, jload, to_db_time, utcnow
 from nexora.web.api_core import audit
@@ -71,6 +72,25 @@ def check_roles(ctx, ids: list[int], field: str) -> list[int]:
         if not ctx.guild.get_role(r):
             raise HTTPException(422, f"{field}: role {r} not found")
     return ids
+
+
+def require_grantable(ctx, ids, field: str, already=()) -> None:
+    """Block setting up Nexora to give/remove roles the dashboard user couldn't assign in Discord themselves."""
+    problems = grant_problems(ctx.member, ctx.guild, ids, already)
+    if problems:
+        raise HTTPException(403, f"{field}: {problems[0]}")
+
+
+def require_mentions(ctx, *texts) -> None:
+    problem = mention_problem(ctx.member, ctx.guild, *texts)
+    if problem:
+        raise HTTPException(403, problem)
+
+
+def _ids(raw) -> set[int]:
+    """Role IDs from a stored JSON list (or list), for 'roles that were already set' comparisons."""
+    vals = jload(raw, []) if isinstance(raw, str) else (raw or [])
+    return {int(v) for v in vals if str(v).isdigit()}
 
 
 def decode(row: dict | None, *cols: str) -> dict | None:
@@ -292,12 +312,12 @@ async def transcript(request: Request, gid: int, tid: int):
 
 
 # ============================================================= applications
-def form_body(ctx, b: dict) -> dict:
+def form_body(ctx, b: dict, already=()) -> dict:
     kind = b.get("kind", "custom")
     from nexora.bot.cogs.applications import FORM_KINDS
     if kind not in FORM_KINDS:
         raise HTTPException(422, "Invalid form type")
-    return {
+    out = {
         "name": s_(b.get("name"), "Name", 80, True), "kind": kind, "description": s_(b.get("description"), "Description", 2000),
         "questions": jdump(validate_questions(b.get("questions") or [], 100, True)),
         "review_channel_id": check_channel(ctx, snow(b.get("review_channel_id"), "Review channel"), "Review channel"),
@@ -312,6 +332,8 @@ def form_body(ctx, b: dict) -> dict:
         "deny_message": s_(b.get("deny_message") or "Thank you for applying. Your {form} application in {server} was not accepted this time.", "Deny message", 2000),
         "enabled": int(bool(b.get("enabled", True))),
     }
+    require_grantable(ctx, _ids(out["accept_role_ids"]) | _ids(out["remove_role_ids"]), "Accept/remove roles", already)
+    return out
 
 
 @router.get("/application-forms")
@@ -337,7 +359,10 @@ async def create_form(request: Request, gid: int):
 @router.put("/application-forms/{fid}")
 async def update_form(request: Request, gid: int, fid: int):
     ctx = await guild_ctx(request, gid, write=True)
-    data = form_body(ctx, await request.json())
+    old = await ctx.bot.db.fetchone("SELECT accept_role_ids, remove_role_ids FROM application_forms WHERE id=? AND guild_id=?", (fid, gid))
+    if not old:
+        raise HTTPException(404, "Form not found")
+    data = form_body(ctx, await request.json(), _ids(old["accept_role_ids"]) | _ids(old["remove_role_ids"]))
     n = await ctx.bot.db.execute_rowcount(f"UPDATE application_forms SET {', '.join(f'{k}=?' for k in data)} WHERE id=? AND guild_id=?", (*data.values(), fid, gid))
     if not n:
         raise HTTPException(404, "Form not found")
@@ -511,7 +536,7 @@ async def giveaway_action(request: Request, gid: int, gwid: int, action: str):
 
 
 # =============================================================== role menus
-def menu_body(ctx, b: dict) -> dict:
+def menu_body(ctx, b: dict, already=()) -> dict:
     kind = b.get("kind", "button")
     if kind not in {"button", "dropdown", "reaction"}:
         raise HTTPException(422, "Invalid menu type")
@@ -529,6 +554,7 @@ def menu_body(ctx, b: dict) -> dict:
         opts.append({"role_id": str(rid), "label": s_(o.get("label"), "Label", 80), "emoji": emoji, "description": s_(o.get("description"), "Description", 100)})
     if not opts:
         raise HTTPException(422, "Add at least one role")
+    require_grantable(ctx, [int(o["role_id"]) for o in opts], "Role menu", already)
     return {"channel_id": check_channel(ctx, snow(b.get("channel_id"), "Channel", True)), "kind": kind,
             "title": s_(b.get("title"), "Title", 256, True), "description": s_(b.get("description"), "Description", 2000),
             "options": jdump(opts), "max_values": i_(b.get("max_values"), "Max roles", 0, 25, 0)}
@@ -552,10 +578,10 @@ async def create_menu(request: Request, gid: int):
 @router.put("/role-menus/{mid}")
 async def update_menu(request: Request, gid: int, mid: int):
     ctx = await guild_ctx(request, gid, write=True)
-    data = menu_body(ctx, await request.json())
-    old = await ctx.bot.db.fetchone("SELECT channel_id, kind FROM role_menus WHERE id=? AND guild_id=?", (mid, gid))
+    old = await ctx.bot.db.fetchone("SELECT channel_id, kind, options FROM role_menus WHERE id=? AND guild_id=?", (mid, gid))
     if not old:
         raise HTTPException(404, "Menu not found")
+    data = menu_body(ctx, await request.json(), {int(o["role_id"]) for o in jload(old["options"], []) if str(o.get("role_id", "")).isdigit()})
     reset_msg = ", message_id=NULL" if old["channel_id"] != data["channel_id"] or old["kind"] != data["kind"] else ""
     await ctx.bot.db.execute(f"UPDATE role_menus SET {', '.join(f'{k}=?' for k in data)}{reset_msg} WHERE id=?", (*data.values(), mid))
     await audit(ctx, "rolemenu.update", {"id": mid})
@@ -595,16 +621,17 @@ async def publish_menu(request: Request, gid: int, mid: int):
 
 
 # ============================================================ simple CRUDs
-def shop_body(ctx, b):
+def shop_body(ctx, b, already=()):
     rid = snow(b.get("role_id"), "Role")
     if rid:
         check_roles(ctx, [rid], "Role")
+        require_grantable(ctx, [rid], "Shop role", already)
     return {"name": s_(b.get("name"), "Name", 80, True), "description": s_(b.get("description"), "Description", 300),
             "price": i_(b.get("price"), "Price", 0, 1_000_000_000), "role_id": rid, "stock": i_(b.get("stock"), "Stock", -1, 1_000_000, -1),
             "enabled": int(bool(b.get("enabled", True)))}
 
 
-def command_body(ctx, b):
+def command_body(ctx, b, already=()):
     name = s_(b.get("name"), "Name", 32, True).lower().lstrip("!")
     if not re.fullmatch(r"[a-z0-9_-]{1,32}", name):
         raise HTTPException(422, "Command names can only use letters, numbers, - and _")
@@ -620,7 +647,7 @@ def command_body(ctx, b):
             "required_role_ids": jdump(check_roles(ctx, snow_list(b.get("required_role_ids"), "Roles"), "Roles")), "enabled": int(bool(b.get("enabled", True)))}
 
 
-def scheduled_body(ctx, b):
+def scheduled_body(ctx, b, already=()):
     try:
         when = datetime.fromisoformat(str(b.get("next_run_at") or "").replace("Z", "+00:00"))
     except ValueError:
@@ -631,11 +658,12 @@ def scheduled_body(ctx, b):
     content = s_(b.get("content"), "Content", 2000)
     if not content and not embed:
         raise HTTPException(422, "Message is empty")
+    require_mentions(ctx, content)
     return {"channel_id": check_channel(ctx, snow(b.get("channel_id"), "Channel", True)), "content": content, "embed": embed,
             "next_run_at": to_db_time(when), "repeat_hours": i_(b.get("repeat_hours"), "Repeat", 0, 8760, 0), "enabled": int(bool(b.get("enabled", True)))}
 
 
-def embed_save_body(ctx, b):
+def embed_save_body(ctx, b, already=()):
     return {"name": s_(b.get("name"), "Name", 64, True), "data": jdump(validate_embed(b.get("data") or {}))}
 
 
@@ -692,7 +720,13 @@ async def crud_create(request: Request, gid: int, kind: str):
 async def crud_update(request: Request, gid: int, kind: str, item_id: int):
     ctx = await guild_ctx(request, gid, write=True)
     table, body_fn, _, _ = _crud(kind)
-    data = body_fn(ctx, await request.json())
+    already = ()
+    if kind == "shop":
+        old = await ctx.bot.db.fetchone("SELECT role_id FROM shop_items WHERE id=? AND guild_id=?", (item_id, gid))
+        already = {old["role_id"]} if old and old["role_id"] else ()
+    data = body_fn(ctx, await request.json(), already)
+    if kind == "scheduled":
+        data["created_by"] = ctx.user_id  # pings are sent with the permissions of whoever last edited it
     try:
         n = await ctx.bot.db.execute_rowcount(f"UPDATE {table} SET {', '.join(f'{k}=?' for k in data)} WHERE id=? AND guild_id=?", (*data.values(), item_id, gid))
     except Exception as exc:
@@ -722,12 +756,13 @@ async def send_embed(request: Request, gid: int):
     b = await request.json()
     cid = check_channel(ctx, snow(b.get("channel_id"), "Channel", True))
     data = validate_embed(b.get("data") or {})
-    member = ctx.guild.get_member(ctx.user_id)
+    member = ctx.member
     ch = ctx.guild.get_channel(cid)
     if not member or not ch.permissions_for(member).send_messages:
         raise HTTPException(403, "You can't send messages in that channel")
+    require_mentions(ctx, data["content"])
     try:
-        msg = await need_cog(ctx, "Utility").send_payload(ch, data["content"], data, ctx.guild)
+        msg = await need_cog(ctx, "Utility").send_payload(ch, data["content"], data, ctx.guild, actor=member)
     except discord.Forbidden:
         raise HTTPException(403, "Nexora can't send messages in that channel") from None
     except discord.HTTPException as exc:
@@ -817,6 +852,14 @@ async def _save_automation(ctx, b, aid: int | None):
         data = validate_automation(b)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
+    old_actions = []
+    if aid is not None:
+        old_actions = jload(await ctx.bot.db.fetchval("SELECT actions FROM automations WHERE id=? AND guild_id=?", (aid, ctx.gid)), [])
+    old_roles = {int(a["role"]) for a in old_actions if str(a.get("role", "")).isdigit()}
+    require_grantable(ctx, [a["role"] for a in data["actions"] if a.get("role")], "Automation role", old_roles)
+    if (any(a["type"] == "timeout_member" for a in data["actions"]) and not any(a.get("type") == "timeout_member" for a in old_actions)
+            and not (ctx.member and (ctx.member.id == ctx.guild.owner_id or ctx.member.guild_permissions.moderate_members))):
+        raise HTTPException(403, "You need the Timeout Members permission to add a timeout action")
     for c in data["conditions"]:
         if c["type"] in {"has_role", "lacks_role", "role_is"}:
             check_roles(ctx, [c["value"]], "Condition role")

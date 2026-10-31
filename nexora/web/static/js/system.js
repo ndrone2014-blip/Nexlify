@@ -2,7 +2,8 @@
 (function () {
   const root = document.getElementById('system');
   const csrf = root.dataset.csrf;
-  const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+  // Escapes text for HTML, including quotes, so it's also safe inside attribute values.
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const size = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB');
   const toast = (m, e) => { const t = document.createElement('div'); t.className = 'toast' + (e ? ' error' : ''); t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 5000); };
   async function call(method, url, body) {
