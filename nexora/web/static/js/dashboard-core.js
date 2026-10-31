@@ -10,7 +10,7 @@ const NX = {
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const icon = (n) => window.nxIcon(n);
+const icon = (n) => (typeof window.nxIcon === 'function' ? window.nxIcon(n) : '');  // icons are optional; never break a page
 const fmtNum = (n) => (n == null ? '—' : Number(n).toLocaleString());
 function fmtTime(s) {
   if (!s) return '—';
