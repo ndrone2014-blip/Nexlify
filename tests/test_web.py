@@ -442,3 +442,25 @@ def test_rate_limiter():
     assert all(rl.allow("k", 3, 60) for _ in range(3))
     assert not rl.allow("k", 3, 60)
     assert rl.allow("other", 3, 60)
+
+
+def test_dashboard_access_without_member_cache(monkeypatch):
+    """With the Server Members intent off, members aren't cached; access is checked via Discord's API instead."""
+    import discord
+
+    async def t():
+        async with Env(ready=True) as env:
+            owner = env.guild.get_member(OWNER_ID)
+            env.guild._members.pop(OWNER_ID)  # simulate an empty member cache
+
+            async def fetch_member(guild, uid):
+                if uid == OWNER_ID:
+                    return owner
+                raise discord.NotFound(type("R", (), {"status": 404, "reason": "x"})(), "Unknown Member")
+            monkeypatch.setattr(discord.Guild, "fetch_member", fetch_member)
+            _, d = await env.req("GET", "/api/guilds")
+            assert d["guilds"][0]["bot_in"] is True and d["guilds"][0]["access"] == "manage"
+            assert (await env.req("GET", "guild/meta"))[0] == 200
+            env.guild._members.pop(NOBODY_ID)
+            assert (await env.req("GET", "guild/meta", user=NOBODY_ID))[0] == 403
+    run(t())

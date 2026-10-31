@@ -151,7 +151,11 @@ async def access_level(bot, guild, user_id: int) -> str | None:
     """Compute dashboard access from live bot data (always current, unlike cached OAuth lists)."""
     member = guild.get_member(user_id)
     if member is None:
-        return None
+        # Without the Server Members intent the member cache is empty, so ask Discord directly.
+        try:
+            member = await guild.fetch_member(user_id)
+        except Exception:  # not in the server, or Discord unreachable
+            return None
     perms = member.guild_permissions
     if guild.owner_id == user_id or perms.administrator or perms.manage_guild:
         return "manage"
