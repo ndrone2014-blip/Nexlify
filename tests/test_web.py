@@ -464,3 +464,18 @@ def test_dashboard_access_without_member_cache(monkeypatch):
             env.guild._members.pop(NOBODY_ID)
             assert (await env.req("GET", "guild/meta", user=NOBODY_ID))[0] == 403
     run(t())
+
+
+def test_server_list_is_rendered_without_javascript():
+    """The /dashboard page lists servers in the HTML itself, and static JS is served with a JS MIME type."""
+    async def t():
+        async with Env(ready=True) as env:
+            status, html, _ = await env.req("GET", "/dashboard", raw=True)
+            assert status == 200
+            assert "Test Server" in html and f'href="/dashboard/{GUILD_ID}"' in html
+            status, html, _ = await env.req("GET", "/dashboard", user=NOBODY_ID, raw=True)
+            assert status == 200 and "Test Server" not in html and "don't manage any servers" in html
+            status, _, headers = await env.req("GET", "/static/js/public.js", user=None, raw=True)
+            assert status == 200 and headers["content-type"].startswith("text/javascript")
+            assert headers["cache-control"] == "no-cache"
+    run(t())

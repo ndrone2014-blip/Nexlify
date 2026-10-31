@@ -2,8 +2,8 @@
 {% block title %}Dashboard · Nexora{% endblock %}
 {% block head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-<script src="/static/js/dashboard-core.js" defer></script>
-<script src="/static/js/dashboard-pages.js" defer></script>
+<script src="{{ asset('js/dashboard-core.js') }}" defer></script>
+<script src="{{ asset('js/dashboard-pages.js') }}" defer></script>
 {% endblock %}
 {% block body %}
 <div class="dash" id="app" data-gid="{{ gid }}" data-csrf="{{ user.csrf_token }}">

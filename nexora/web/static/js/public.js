@@ -29,9 +29,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 30000);
   }
   var servers = document.getElementById('server-list');
-  if (servers) loadServers(servers, false);
+  // The server already rendered the list; only fetch here if it didn't.
+  if (servers && !servers.dataset.rendered) loadServers(servers, false);
   var refresh = document.getElementById('refresh-servers');
-  if (refresh) refresh.addEventListener('click', function () { loadServers(servers, true); });
+  if (refresh && servers) refresh.addEventListener('click', function (e) { e.preventDefault(); loadServers(servers, true); });
 });
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }

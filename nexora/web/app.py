@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.types import Scope
 
 from nexora.web import api_core, api_features, api_moderation, auth
 from nexora.web.jsonsafe import SafeJSONResponse
@@ -38,6 +39,37 @@ class NexoraStatic(StaticFiles):
         return response
 HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(HERE / "templates"))
+
+# Explicit types so we never depend on the Windows registry (or anything that re-runs mimetypes.init()).
+STATIC_TYPES = {".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml",
+                ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json"}
+
+
+class NexoraStatic(StaticFiles):
+    """Static files with forced MIME types and no stale caching.
+
+    Browsers (and Cloudflare) keep the Content-Type of a cached file even after a 304, so a .js file that was
+    once served as text/plain stays blocked until the cache is bypassed. `no-cache` makes them revalidate,
+    and the ?v= asset version in templates gives every restart fresh URLs."""
+
+    async def get_response(self, path: str, scope: Scope):
+        response = await super().get_response(path, scope)
+        ctype = STATIC_TYPES.get(Path(path).suffix.lower())
+        if ctype and response.status_code in (200, 304):
+            response.headers["content-type"] = ctype
+        response.headers["cache-control"] = "no-cache"
+        return response
+
+
+def _asset_version() -> str:
+    try:
+        return str(int(max(f.stat().st_mtime for f in (HERE / "static").rglob("*") if f.is_file())))
+    except ValueError:
+        return str(int(time.time()))
+
+
+ASSET_VERSION = _asset_version()
+templates.env.globals["asset"] = lambda path: f"/static/{path}?v={ASSET_VERSION}"
 
 FEATURES = [
     ("scroll", "Advanced logging", "Message edits with before and after, deletions with attachments, role and permission diffs, voice, invites, webhooks and server changes. Searchable, filterable and exportable from the dashboard."),
@@ -175,7 +207,18 @@ def create_app(config, db, bot) -> FastAPI:
             if not config.oauth_enabled:
                 raise HTTPException(503, "Discord login isn't configured yet. Add DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET to .env and restart.")
             return RedirectResponse("/auth/login?next=/dashboard")
-        return page(request, "servers.html", user=user)
+        # Render the list on the server so it shows up even if the browser blocks or caches the scripts.
+        guilds, error = [], None
+        try:
+            guilds = await api_core.build_guild_list(request, user, refresh=request.query_params.get("refresh") in {"1", "true"})
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                return RedirectResponse("/auth/login?next=/dashboard")
+            error = str(exc.detail)
+        except Exception:
+            log.exception("Could not build the server list")
+            error = "Couldn't load your servers from Discord. Try Refresh list in a moment."
+        return page(request, "servers.html", user=user, guilds=guilds, guilds_error=error)
 
     @app.get("/dashboard/{gid}", response_class=HTMLResponse)
     async def dashboard(request: Request, gid: int):

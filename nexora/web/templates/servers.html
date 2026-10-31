@@ -1,12 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Your servers · Nexora{% endblock %}
-{% block head %}<script src="/static/js/public.js" defer></script>{% endblock %}
+{% block head %}<script src="{{ asset('js/public.js') }}" defer></script>{% endblock %}
 {% block content %}
 <div class="wrap">
   <div class="page-head" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
     <div><h1>Choose a server</h1><p>Servers where you have Manage Server, or a dashboard role. Faded servers don't have Nexora yet.</p></div>
-    <div class="inline-flex"><button class="btn" id="refresh-servers">Refresh list</button>{% if user.user_id in config.owner_ids %}<a class="btn" href="/system">System</a>{% endif %}</div>
+    <div class="inline-flex"><a class="btn" id="refresh-servers" href="/dashboard?refresh=1">Refresh list</a>{% if user.user_id in config.owner_ids %}<a class="btn" href="/system">System</a>{% endif %}</div>
   </div>
-  <div id="server-list"></div>
+  <div id="server-list" data-rendered="1">
+    {% if guilds_error %}
+      <p class="notice">{{ guilds_error }}</p>
+    {% elif not guilds %}
+      <div class="empty"><p>You don't manage any servers yet. You need the Manage Server permission, or a dashboard role given by an admin.</p>
+        {% if invite_url %}<a class="btn primary" href="/invite">Add Nexora to a server</a>{% endif %}</div>
+    {% else %}
+      <div class="server-grid">
+      {% for g in guilds %}
+        {% set icon %}{% if g.icon %}<img class="icon" src="{{ g.icon }}" alt="">{% else %}<span class="icon">{{ g.name[:2] }}</span>{% endif %}{% endset %}
+        {% if not g.bot_in %}
+          <a class="server invite" href="{{ (invite_url ~ '&guild_id=' ~ g.id ~ '&disable_guild_select=true') if invite_url else '#' }}" target="_blank" rel="noopener">{{ icon }}<div><div class="name">{{ g.name }}</div><div class="faint">Add Nexora</div></div></a>
+        {% else %}
+          <a class="server" href="/dashboard/{{ g.id }}">{{ icon }}<div><div class="name">{{ g.name }}</div><div class="faint">{% if g.access == 'read' %}Read-only · {% endif %}{{ "{:,}".format(g.members or 0) }} members</div></div></a>
+        {% endif %}
+      {% endfor %}
+      </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

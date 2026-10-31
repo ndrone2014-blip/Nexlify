@@ -46,24 +46,29 @@ async def me(request: Request):
             "csrf": sess.csrf_token, "is_owner": int(u["id"]) in cfg.owner_ids}
 
 
-@router.get("/guilds")
-async def guilds(request: Request, refresh: bool = False):
-    sess = await require_session(request)
+async def build_guild_list(request: Request, sess, refresh: bool = False) -> list[dict]:
+    """Servers this user can open (or invite Nexora to). Shared by the API and the server-rendered page."""
     bot = request.app.state.bot
     out = []
-    seen = set()
     for g in await oauth_guilds(request, sess, force=refresh):
         gid = int(g["id"])
         live = bot.get_guild(gid) if bot else None
         level = await access_level(bot, live, sess.user_id) if live else None
         if level is None and not can_manage_from_oauth(g):
             continue
-        seen.add(gid)
+        access = level or ("invite" if not live else None)
+        if not access:
+            continue
         out.append({"id": g["id"], "name": g["name"], "icon": icon_url(g["id"], g["icon"]), "bot_in": live is not None,
-                    "access": level or ("invite" if not live else None), "members": live.member_count if live else None})
-    out = [g for g in out if g["access"]]
+                    "access": access, "members": live.member_count if live else None})
     out.sort(key=lambda g: (not g["bot_in"], g["name"].lower()))
-    return {"guilds": out, "invite_url": request.app.state.config.invite_url}
+    return out
+
+
+@router.get("/guilds")
+async def guilds(request: Request, refresh: bool = False):
+    sess = await require_session(request)
+    return {"guilds": await build_guild_list(request, sess, refresh), "invite_url": request.app.state.config.invite_url}
 
 
 # ---------------------------------------------------------------- metadata

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}System · Nexora{% endblock %}
-{% block head %}<script src="/static/js/system.js" defer></script>{% endblock %}
+{% block head %}<script src="{{ asset('js/system.js') }}" defer></script>{% endblock %}
 {% block content %}
 <div class="wrap" id="system" data-csrf="{{ user.csrf_token }}">
   <div class="page-head"><h1>System</h1><p>Diagnostics, errors and database backups for this Nexora instance. Only bot owners can see this page.</p></div>
