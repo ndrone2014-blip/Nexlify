@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import time
 from pathlib import Path
 
@@ -16,6 +17,11 @@ from nexora.web.jsonsafe import SafeJSONResponse
 from nexora.web.security import RateLimiter, SecurityMiddleware, SessionStore
 
 log = logging.getLogger("nexora.web")
+
+# Some Windows PCs map .js/.css to text/plain in the registry; browsers then refuse to run the scripts.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("image/svg+xml", ".svg")
 HERE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(HERE / "templates"))
 
