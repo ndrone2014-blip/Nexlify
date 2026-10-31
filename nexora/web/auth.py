@@ -5,7 +5,7 @@ import secrets
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import aiohttp
 from fastapi import APIRouter, HTTPException, Request
@@ -47,6 +47,10 @@ async def login(request: Request, next: str = "/dashboard"):
         raise HTTPException(503, "Discord login isn't configured. Set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in .env")
     if not next.startswith("/") or next.startswith("//"):
         next = "/dashboard"
+    # The login check cookie must be set on the same address Discord sends the user back to.
+    callback = urlparse(cfg.redirect_uri)
+    if callback.netloc and request.url.netloc != callback.netloc:
+        return RedirectResponse(f"{callback.scheme}://{callback.netloc}/auth/login?{urlencode({'next': next})}")
     nonce = secrets.token_urlsafe(24)
     signer = URLSafeTimedSerializer(cfg.session_secret, salt="oauth-state")
     params = {

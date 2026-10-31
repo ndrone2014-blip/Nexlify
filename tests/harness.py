@@ -104,6 +104,7 @@ class Env:
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
             self.port = s.getsockname()[1]
+        self.config.redirect_uri = f"http://127.0.0.1:{self.port}/auth/callback"
         self.server = uvicorn.Server(uvicorn.Config(self.app, host="127.0.0.1", port=self.port, log_level="error"))
         self.server.install_signal_handlers = lambda: None
         self.server_task = asyncio.create_task(self.server.serve())

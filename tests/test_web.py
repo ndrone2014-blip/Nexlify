@@ -478,4 +478,11 @@ def test_server_list_is_rendered_without_javascript():
             status, _, headers = await env.req("GET", "/static/js/public.js", user=None, raw=True)
             assert status == 200 and headers["content-type"].startswith("text/javascript")
             assert headers["cache-control"] == "no-cache"
+def test_login_moves_to_callback_host():
+    """Starting login on localhost when Discord returns to the tunnel must hop to the tunnel first."""
+    async def t():
+        async with Env(ready=False) as env:
+            env.config.redirect_uri = "https://example.trycloudflare.com/auth/callback"
+            s, _, h = await env.req("GET", "/auth/login?next=/dashboard/5", user=None, raw=True)
+            assert s in (302, 307) and h["Location"] == "https://example.trycloudflare.com/auth/login?next=%2Fdashboard%2F5"
     run(t())
