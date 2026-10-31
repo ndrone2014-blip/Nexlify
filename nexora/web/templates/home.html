@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Nexora: run your whole Discord server from one place{% endblock %}
+{% block content %}
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>See everything that happens in your server.</h1>
+      <p class="lede">Nexora records every edit, deletion, role change and moderator action, then gives you the tools to act on it: moderation, automod, tickets, applications, giveaways and automations, all managed from one dashboard.</p>
+      <div class="ctas">
+        {% if invite_url %}<a class="btn primary" href="/invite">Add Nexora to your server</a>{% endif %}
+        <a class="btn" href="/dashboard">Open the dashboard</a>
+      </div>
+      <p class="proof">{% if servers %}Running in {{ servers }} server{{ 's' if servers != 1 }} right now. {% endif %}Free to host on your own PC.</p>
+    </div>
+    <div class="stream" aria-label="Example of Nexora's log channel">
+      <div class="stream-head"><span class="hash">#</span>mod-logs<span class="live-dot" title="Example feed"></span></div>
+      <div class="embed warn"><b>Message edited</b>by mira in #general
+        <div class="diff"><span>Before</span><span>meet at 6?</span><span>After</span><span>meet at 7 instead, sorry!</span></div></div>
+      <div class="embed bad"><b>Automod · Malicious link</b>Message from a 2-day-old account removed and the user timed out for 10 minutes. Moderators can undo it if it was a false positive.</div>
+      <div class="embed"><b>Role updated · Helpers</b>Permissions granted: Manage Messages, Timeout Members. Changed by sam.</div>
+      <div class="embed ok"><b>Ticket #0142 closed</b>Claimed by sam, rated 5 stars. Transcript saved to the dashboard.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-intro">
+      <h2>Everything a growing community needs</h2>
+      <p class="muted">Every feature works from Discord and from the dashboard, and they share one database, so a ticket closed on the website closes in Discord too.</p>
+    </div>
+    <div class="feature-grid">
+      {% for icon, name, desc in features %}
+      <div class="feature"><span data-icon="{{ icon }}"></span><h3>{{ name }}</h3><p>{{ desc }}</p></div>
+      {% endfor %}
+    </div>
+    <p class="mt"><a href="/features">See all features</a></p>
+  </section>
+
+  <section class="section">
+    <h2>Set up in a few minutes</h2>
+    <ol class="steps">
+      <li><div><h3>Run install.bat</h3><p class="muted">It installs Python packages and creates your settings file.</p></div></li>
+      <li><div><h3>Paste your bot token</h3><p class="muted">Create an application in the Discord Developer Portal and copy its token and OAuth details into <code>.env</code>.</p></div></li>
+      <li><div><h3>Run start.bat and log in</h3><p class="muted">The bot and this website start together. Log in with Discord, pick a server and switch on the features you want.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="section">
+    <div class="band">
+      <div><h2>Ready to take control of your server?</h2><p style="margin:0;opacity:.85">Pick a server and Nexora is configured from here on.</p></div>
+      <a class="btn" href="/dashboard">Go to the dashboard</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

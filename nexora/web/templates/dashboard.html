@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Nexora{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="/static/js/dashboard-core.js" defer></script>
+<script src="/static/js/dashboard-pages.js" defer></script>
+{% endblock %}
+{% block body %}
+<div class="dash" id="app" data-gid="{{ gid }}" data-csrf="{{ user.csrf_token }}">
+  <aside class="side" id="side">
+    <a class="brand" href="/"><img class="brand-mark" src="/static/img/logo.svg" alt="">Nexora</a>
+    <a class="guild-switch" href="/dashboard" title="Switch server"><span class="icon" id="guild-icon"></span><span><span class="gname" id="guild-name">Loading…</span><span class="faint" style="font-size:.78rem;display:block">Switch server</span></span></a>
+    <nav id="dash-nav">
+      <a href="#overview" data-page="overview"><span data-icon="home"></span>Overview</a>
+      <a href="#analytics" data-page="analytics"><span data-icon="activity"></span>Analytics</a>
+      <a href="#logs" data-page="logs"><span data-icon="scroll"></span>Advanced Logging</a>
+      <h4>Safety</h4>
+      <a href="#moderation" data-page="moderation"><span data-icon="shield"></span>Moderation<span class="count" data-count="appeals" hidden></span></a>
+      <a href="#automod" data-page="automod"><span data-icon="bot"></span>Automod<span class="count" data-count="flags" hidden></span></a>
+      <h4>Community</h4>
+      <a href="#tickets" data-page="tickets"><span data-icon="ticket"></span>Tickets<span class="count" data-count="tickets" hidden></span></a>
+      <a href="#applications" data-page="applications"><span data-icon="clipboard"></span>Applications<span class="count" data-count="applications" hidden></span></a>
+      <a href="#giveaways" data-page="giveaways"><span data-icon="gift"></span>Giveaways</a>
+      <a href="#welcome" data-page="welcome"><span data-icon="wave"></span>Welcome</a>
+      <a href="#roles" data-page="roles"><span data-icon="tag"></span>Roles</a>
+      <a href="#leveling" data-page="leveling"><span data-icon="chart"></span>Leveling</a>
+      <a href="#economy" data-page="economy"><span data-icon="coins"></span>Economy</a>
+      <a href="#suggestions" data-page="suggestions"><span data-icon="lightbulb"></span>Suggestions</a>
+      <a href="#polls" data-page="polls"><span data-icon="poll"></span>Polls</a>
+      <a href="#community" data-page="community"><span data-icon="star"></span>More community</a>
+      <h4>Tools</h4>
+      <a href="#commands" data-page="commands"><span data-icon="terminal"></span>Custom Commands</a>
+      <a href="#embeds" data-page="embeds"><span data-icon="palette"></span>Embeds</a>
+      <a href="#announcements" data-page="announcements"><span data-icon="calendar"></span>Announcements</a>
+      <a href="#automation" data-page="automation"><span data-icon="zap"></span>Automation</a>
+      <a href="#settings" data-page="settings"><span data-icon="settings"></span>Server Settings</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <div class="main-top">
+      <button class="btn ghost small side-toggle" id="side-toggle" aria-controls="side" aria-expanded="false"><span data-icon="menu" style="width:18px;height:18px;display:inline-flex"></span><span class="sr-only">Menu</span></button>
+      <h1 id="page-title">Overview</h1>
+      <span class="spacer"></span>
+      <span class="pill" id="access-pill" hidden>Read-only</span>
+      <a class="btn ghost small hide-sm" href="/dashboard">All servers</a>
+      <form method="post" action="/auth/logout" class="hide-sm"><input type="hidden" name="csrf" value="{{ user.csrf_token }}"><button class="btn ghost small" type="submit">Log out</button></form>
+    </div>
+    <div class="content" id="content"><p class="loading">Loading dashboard…</p></div>
+  </div>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<dialog id="dlg"><div class="dlg-head"><h3 id="dlg-title"></h3><button class="btn ghost small" data-close>Close</button></div><div class="dlg-body" id="dlg-body"></div><div class="dlg-foot" id="dlg-foot"></div></dialog>
+{% endblock %}

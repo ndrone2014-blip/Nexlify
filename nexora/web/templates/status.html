@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Status · Nexora{% endblock %}
+{% block head %}<script src="/static/js/public.js" defer></script>{% endblock %}
+{% block content %}
+<div class="wrap" data-status-refresh>
+  <div class="page-head">
+    <h1>Status</h1>
+    <p>Live health of this Nexora instance. Refreshes every 30 seconds.</p>
+  </div>
+  <div class="status-list">
+    <div class="status-row"><div><strong>Discord bot</strong><div class="faint">Gateway latency <span data-latency>{{ status.latency_ms ~ ' ms' if status.latency_ms is not none else 'n/a' }}</span></div></div>
+      <span data-status="bot" class="pill {{ 'ok' if status.bot else 'bad' }}">{{ 'Operational' if status.bot else 'Offline' }}</span></div>
+    <div class="status-row"><div><strong>Website and API</strong><div class="faint">Up for {{ (status.web_uptime // 3600) }}h {{ (status.web_uptime % 3600) // 60 }}m</div></div>
+      <span data-status="website" class="pill ok">Operational</span></div>
+    <div class="status-row"><div><strong>Database</strong><div class="faint">Query time {{ status.db_ms }} ms</div></div>
+      <span data-status="database" class="pill {{ 'ok' if status.database else 'bad' }}">{{ 'Operational' if status.database else 'Offline' }}</span></div>
+    {% if status.servers is not none %}<div class="status-row"><strong>Servers</strong><span class="pill info">{{ status.servers }}</span></div>{% endif %}
+  </div>
+</div>
+{% endblock %}

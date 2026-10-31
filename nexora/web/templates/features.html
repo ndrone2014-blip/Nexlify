@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Features · Nexora{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>Features</h1>
+    <p>Nexora replaces a stack of separate bots. Everything below is configurable per server on the dashboard.</p>
+  </div>
+  <div class="feature-grid">
+    {% for icon, name, desc in features %}
+    <div class="feature"><span data-icon="{{ icon }}"></span><h3>{{ name }}</h3><p>{{ desc }}</p></div>
+    {% endfor %}
+    <div class="feature"><span data-icon="wave"></span><h3>Welcome and roles</h3><p>Welcome and goodbye messages with banners and buttons, auto roles, button, dropdown and reaction role menus, and temporary roles.</p></div>
+    <div class="feature"><span data-icon="lightbulb"></span><h3>Community tools</h3><p>Suggestions with voting and staff replies, polls, starboard, counting, birthdays, reminders and live member-count channels.</p></div>
+    <div class="feature"><span data-icon="terminal"></span><h3>Custom commands</h3><p>Create text or embed responses with placeholders, role restrictions and usage counts.</p></div>
+    <div class="feature"><span data-icon="calendar"></span><h3>Scheduled announcements</h3><p>Send a message or embed once or on repeat, managed from the dashboard.</p></div>
+    <div class="feature"><span data-icon="sparkles"></span><h3>AI assistant</h3><p>An optional <code>/ask</code> command powered by Claude, limited to the channels and roles you choose. Needs your own API key.</p></div>
+    <div class="feature"><span data-icon="server"></span><h3>Backups and diagnostics</h3><p>Export and import a server's whole configuration, back up and restore the database, and watch errors and performance.</p></div>
+  </div>
+</div>
+{% endblock %}

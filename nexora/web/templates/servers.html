@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Your servers · Nexora{% endblock %}
+{% block head %}<script src="/static/js/public.js" defer></script>{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+    <div><h1>Choose a server</h1><p>Servers where you have Manage Server, or a dashboard role. Faded servers don't have Nexora yet.</p></div>
+    <div class="inline-flex"><button class="btn" id="refresh-servers">Refresh list</button>{% if user.user_id in config.owner_ids %}<a class="btn" href="/system">System</a>{% endif %}</div>
+  </div>
+  <div id="server-list"></div>
+</div>
+{% endblock %}

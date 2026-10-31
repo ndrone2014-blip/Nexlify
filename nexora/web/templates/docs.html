@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Documentation · Nexora{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  <div class="page-head" style="padding-left:0">
+    <h1>Documentation</h1>
+    <p>How to install Nexora, connect it to Discord and configure each system.</p>
+  </div>
+
+  <h2 id="install">Installing on Windows</h2>
+  <ol>
+    <li>Install <a href="https://www.python.org/downloads/" rel="noopener">Python 3.12 or newer</a>. Tick <em>Add python.exe to PATH</em> in the installer.</li>
+    <li>Download or clone the Nexlify repository and open the folder.</li>
+    <li>Double-click <code>install.bat</code>. It creates a virtual environment, installs packages and creates <code>.env</code> with a random session secret.</li>
+    <li>Fill in <code>.env</code> (see below), then double-click <code>start.bat</code>. The bot and website start together at <code>http://localhost:8000</code>.</li>
+  </ol>
+
+  <h2 id="discord-app">Creating the Discord application</h2>
+  <ol>
+    <li>Open the <a href="https://discord.com/developers/applications" rel="noopener">Discord Developer Portal</a> and create an application.</li>
+    <li><strong>Bot</strong> tab: reset and copy the token into <code>DISCORD_BOT_TOKEN</code>. Turn on <em>Server Members Intent</em> and <em>Message Content Intent</em>. Logging, welcome messages, automod and leveling depend on them.</li>
+    <li><strong>OAuth2</strong> tab: copy the Client ID and Client Secret into <code>DISCORD_CLIENT_ID</code> and <code>DISCORD_CLIENT_SECRET</code>.</li>
+    <li>Still under OAuth2, add the redirect <code>http://localhost:8000/auth/callback</code>. It must exactly match <code>DISCORD_REDIRECT_URI</code>.</li>
+    <li>Put your own Discord user ID in <code>BOT_OWNER_IDS</code> to unlock the System page (backups, errors, diagnostics).</li>
+    <li>Optional: set <code>DEV_GUILD_ID</code> to a test server's ID so slash commands appear there instantly. Global commands can take up to an hour.</li>
+  </ol>
+
+  <h2 id="permissions">Permissions and role position</h2>
+  <p>The invite link asks for Administrator to keep setup simple. If you prefer fewer permissions, Nexora needs Manage Roles, Manage Channels, Kick, Ban, Moderate Members, Manage Messages, View Audit Log, Manage Server (to read invites) and Embed Links. Drag Nexora's role above any role it should assign or moderate. Discord won't let a bot manage roles above its own.</p>
+
+  <h2 id="dashboard-access">Who can use the dashboard</h2>
+  <p>Anyone with Manage Server can manage that server's dashboard. Under <em>Server Settings</em> you can give extra roles full or read-only access. Each moderation action from the dashboard also checks your own Discord permissions, so a dashboard user without Ban Members can't ban.</p>
+
+  <h2 id="logging">Logging</h2>
+  <p>Every category (messages, members, roles, channels, moderation, voice, server) can be switched on or off and sent to its own channel. All events are stored for the retention period you choose and are searchable on the Logs page.</p>
+  <p>Some details are limited by Discord itself:</p>
+  <ul>
+    <li>Content of edited or deleted messages is only known if the message was sent while Nexora was running (it keeps the last 5,000 messages in memory).</li>
+    <li>Discord's audit log only records who deleted a message when it was someone other than the author, and it groups repeated deletions. When Nexora can't know who did something, the log says so.</li>
+    <li>Attachments on deleted messages are removed from Discord's servers, so only their names and sizes are logged.</li>
+  </ul>
+
+  <h2 id="placeholders">Placeholders</h2>
+  <p>Welcome, goodbye, level-up, ticket, application, custom command and automation messages can use:</p>
+  <p><code>{user}</code> <code>{user.name}</code> <code>{user.display_name}</code> <code>{user.id}</code> <code>{user.avatar}</code> <code>{server}</code> <code>{member_count}</code> <code>{member_count_ordinal}</code>. Level-ups also have <code>{level}</code> and <code>{xp}</code>; custom commands have <code>{args}</code> and <code>{channel}</code>; automations can use <code>{role}</code>, <code>{level}</code> and <code>{form}</code> depending on the trigger.</p>
+
+  <h2 id="tickets">Tickets</h2>
+  <p>Create a panel on the Tickets page, choose its channel, category and staff roles, add up to five questions, then press <em>Publish</em>. Members click the button, answer the questions, and get a private channel. Staff can claim, transfer, set priority and close. Closing saves an HTML transcript to the dashboard and optionally to a transcript channel and the member's DMs.</p>
+
+  <h2 id="applications">Applications</h2>
+  <p>Forms can have any number of questions. Text questions are grouped five at a time (Discord's limit per pop-up) and multiple-choice questions appear as dropdowns, so long forms run over a few steps. Submissions go to a review channel and the Applications page. With <em>required votes</em> above one, that many reviewers must agree before the decision is applied.</p>
+
+  <h2 id="automation">Automations</h2>
+  <p>An automation is a trigger, optional conditions and one or more actions. Example: when a member reaches level 10 and doesn't have the Regular role, give them the role and post a message in #general. Each run is recorded with its result, and failing actions are shown with the reason.</p>
+
+  <h2 id="backups">Backups</h2>
+  <p>Per-server configuration can be exported and imported from <em>Server Settings</em>. Bot owners can make and restore full database backups from the System page. Restoring always makes a safety copy first. Backups are stored in <code>data/backups</code>.</p>
+
+  <h2 id="updating">Updating</h2>
+  <p>Run <code>update.bat</code> (or <code>git pull</code> then <code>install.bat</code>). Database migrations run automatically at startup, and your data and <code>.env</code> are kept.</p>
+
+  <h2 id="postgres">Moving to PostgreSQL later</h2>
+  <p>All queries go through <code>nexora/db</code> with parameter binding, and the schema is plain SQL in <code>nexora/db/migrations</code>. A PostgreSQL port means swapping the connection layer for asyncpg and converting the <code>AUTOINCREMENT</code> columns.</p>
+</div>
+{% endblock %}

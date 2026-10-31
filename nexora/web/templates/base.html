@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Nexora{% endblock %}</title>
+  <meta name="description" content="Nexora is an all-in-one Discord bot with a full web dashboard: logging, moderation, automod, tickets, applications, giveaways and more.">
+  <link rel="icon" href="/static/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/nexora.css">
+  <script src="/static/js/icons.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% block body %}
+<header class="topnav">
+  <div class="wrap">
+    <a class="brand" href="/"><img class="brand-mark" src="/static/img/logo.svg" alt="">Nexora</a>
+    <nav id="site-nav">
+      {% set p = request.url.path %}
+      <a href="/features" {% if p == '/features' %}aria-current="page"{% endif %}>Features</a>
+      <a href="/commands" {% if p == '/commands' %}aria-current="page"{% endif %}>Commands</a>
+      <a href="/docs" {% if p == '/docs' %}aria-current="page"{% endif %}>Docs</a>
+      <a href="/status" {% if p == '/status' %}aria-current="page"{% endif %}>Status</a>
+      <a href="/support" {% if p == '/support' %}aria-current="page"{% endif %}>Support</a>
+    </nav>
+    <div class="actions">
+      {% if invite_url %}<a class="btn ghost hide-sm" href="/invite">Add to Discord</a>{% endif %}
+      {% if user %}
+        <a class="btn primary" href="/dashboard">Dashboard</a>
+        {% if user.user.avatar %}<img class="avatar hide-sm" src="https://cdn.discordapp.com/avatars/{{ user.user.id }}/{{ user.user.avatar }}.png?size=64" alt="{{ user.user.username }}">{% endif %}
+      {% else %}
+        <a class="btn primary" href="/auth/login">Log in with Discord</a>
+      {% endif %}
+      <button class="btn ghost small menu-toggle" aria-controls="site-nav" aria-expanded="false"><span data-icon="menu" style="width:18px;height:18px;display:inline-flex"></span><span class="sr-only">Menu</span></button>
+    </div>
+  </div>
+</header>
+<main>{% block content %}{% endblock %}</main>
+<footer class="site">
+  <div class="wrap">
+    <span>Nexora is free, open and runs on your own computer.</span>
+    <nav>
+      <a href="/docs">Documentation</a><a href="/commands">Commands</a><a href="/status">Status</a><a href="/support">Support</a>
+      {% if user %}<form method="post" action="/auth/logout" style="display:inline"><input type="hidden" name="csrf" value="{{ user.csrf_token }}"><button class="btn ghost small" type="submit">Log out</button></form>{% endif %}
+    </nav>
+  </div>
+</footer>
+{% endblock %}
+</body>
+</html>

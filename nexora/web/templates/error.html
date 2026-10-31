@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · Nexora{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>{{ {404: "Not found", 403: "No access", 503: "Not set up yet", 500: "Server error"}.get(code, "Something went wrong") }}</h1>
+    <p>{{ message }}</p>
+    <div class="inline-flex"><a class="btn primary" href="/dashboard">Back to your servers</a><a class="btn" href="/docs">Read the setup guide</a></div>
+  </div>
+</div>
+{% endblock %}

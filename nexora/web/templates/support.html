@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Support · Nexora{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  <div class="page-head" style="padding-left:0">
+    <h1>Support</h1>
+    <p>Most problems come down to a missing intent, a permission or role position. Check these first.</p>
+  </div>
+  {% if config.support_url %}<p><a class="btn primary" href="{{ config.support_url }}" rel="noopener">Join the support server</a></p>{% endif %}
+
+  <h2>Slash commands don't show up</h2>
+  <p>Global commands can take up to an hour the first time. Set <code>DEV_GUILD_ID</code> in <code>.env</code> for instant updates in one server, and make sure the bot was invited with the <code>applications.commands</code> scope (the invite button includes it).</p>
+
+  <h2>"Discord refused that action"</h2>
+  <p>Nexora's highest role must be above the member or role it's acting on. Go to Server Settings, then Roles, and drag Nexora up. The dashboard's Overview page also lists any permissions Nexora is missing.</p>
+
+  <h2>Logs show "content unavailable"</h2>
+  <p>Discord doesn't send old message content to bots. Nexora can only show the content of messages it saw while it was running. Turn on the Message Content intent in the Developer Portal.</p>
+
+  <h2>Login loops or "Discord rejected the login"</h2>
+  <p>The redirect URL in the Developer Portal must match <code>DISCORD_REDIRECT_URI</code> exactly, including <code>http</code> versus <code>https</code> and the port.</p>
+
+  <h2>Something else</h2>
+  <p>Bot owners can open the <a href="/system">System page</a> to see recent errors with full details. Include those when asking for help.</p>
+</div>
+{% endblock %}

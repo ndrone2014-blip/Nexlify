@@ -1,0 +1,13 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+data/
+*.db
+*.db-wal
+*.db-shm
+.pytest_cache/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json

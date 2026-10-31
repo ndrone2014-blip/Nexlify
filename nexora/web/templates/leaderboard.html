@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} leaderboard · Nexora{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>{{ guild.name }}</h1>
+    <p>{{ 'Richest members' if board == 'economy' else 'Most active members by XP' }}</p>
+    <div class="inline-flex"><a class="btn small {{ 'primary' if board == 'xp' }}" href="?board=xp">Levels</a><a class="btn small {{ 'primary' if board == 'economy' }}" href="?board=economy">Economy</a></div>
+  </div>
+  <div class="panel table-scroll">
+    <table class="data">
+      <thead><tr><th>Rank</th><th>Member</th>{% if board == 'xp' %}<th>Level</th><th>XP</th><th>Messages</th>{% else %}<th>Balance</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for r in data.rows %}
+        <tr><td>{{ loop.index }}</td>
+          <td><span class="user-cell">{% if r.user and r.user.avatar %}<img src="{{ r.user.avatar }}" alt="">{% endif %}{{ r.user.name if r.user and r.user.name else 'Former member' }}</span></td>
+          {% if board == 'xp' %}<td>{{ r.level }}</td><td>{{ '{:,}'.format(r.value) }}</td><td>{{ '{:,}'.format(r.messages) }}</td>{% else %}<td>{{ currency }} {{ '{:,}'.format(r.value) }}</td>{% endif %}
+        </tr>
+      {% else %}<tr><td colspan="5" class="empty">Nobody here yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

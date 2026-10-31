@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Commands · Nexora{% endblock %}
+{% block head %}<script src="/static/js/public.js" defer></script>{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>Commands</h1>
+    <p>All commands are slash commands. Type <code>/</code> in Discord to see them. This list is generated from the running bot.</p>
+  </div>
+  {% if groups %}
+  <div class="search-box"><label for="cmd-search">Search commands</label><input id="cmd-search" type="search" placeholder="ban, ticket, giveaway…"></div>
+  {% for g in groups %}
+  <section class="cmd-group" data-group>
+    <h2>{{ g.name }}</h2>
+    <table class="cmd-table">
+      {% for c in g.commands %}
+      <tr data-cmd="{{ c.name }} {{ c.description }}">
+        <td><span class="cmd-name">/{{ c.name }}</span></td>
+        <td>{{ c.description }}
+          <div>{% for p in c.params %}<span class="param {{ '' if p.required else 'opt' }}" title="{{ p.description }}">{{ p.name }}{{ '' if p.required else '?' }}</span>{% endfor %}</div>
+          {% if c.permission %}<div class="perm">Requires {{ c.permission }}</div>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+  {% endfor %}
+  {% else %}
+  <p class="notice">The bot isn't loaded, so the command list is unavailable. Start Nexora with start.bat.</p>
+  {% endif %}
+</div>
+{% endblock %}
